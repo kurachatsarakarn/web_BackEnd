@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.IO OpenCV</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: rgb(244, 244, 244);
+        margin: 0;
+        padding: 0;
+      }
+
+      #head {
+        width: 100%;
+        height: 80px;
+        background-color: rgb(232, 0, 0);
+        font-size: 50px;
+        text-align: center;
+        padding-top: 10px;
+        color: white;
+      }
+
+      #pic {
+        width: 650px;
+        height: 450px;
+        margin-left: 50px;
+        float: left; /* Float the video to the left */
+      }
+
+      .rightq {
+        width: calc(
+          100% - 700px
+        ); /* Adjusted width to fit in the remaining space */
+        height: 500px;
+        float: left; /* Float the rightq div to the left */
+      }
+
+      .rightq h1 {
+        font-size: 18px;
+        margin: 5px 0;
+        padding-left: 50px;
+      }
+
+      .container {
+        margin-top: 40px;
+      }
+
+      #sum {
+        color: rgb(7, 240, 7);
+      }
+
+      #video,
+      #canvas {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="head">Detect Object CORN</div>
+    <div class="container">
+      <video id="video" width="640" height="480" autoplay></video>
+      <canvas id="canvas" width="640" height="480"></canvas>
+      <div class="vdo">
+        <img id="pic" />
+      </div>
+      <div class="rightq">
+        <h1 id="Broken brown">Broken brown:</h1>
+        <h1 id="Broken seeds">Broken seeds:</h1>
+        <h1 id="Broken_dirty">Broken_dirty:</h1>
+        <h1 id="Dirty cracked">Dirty cracked:</h1>
+        <h1 id="Full broken">Full broken:</h1>
+        <h1 id="black middle">black middle:</h1>
+        <h1 id="black spots">black spots:</h1>
+        <h1 id="borer moth">black middle:</h1>
+        <h1 id="clean broken">clean broken:</h1>
+        <h1 id="germinated seeds">germinated seeds:</h1>
+        <h1 id="honey colored seeds">honey colored seeds:</h1>
+        <h1 id="mold spores">mold spores:</h1>
+        <h1 id="moldy">moldy:</h1>
+        <h1 id="pale seeds">pale seeds:</h1>
+        <h1 id="pink marks">pink marks:</h1>
+        <h1 id="seeds are brown">seeds are brown:</h1>
+        <h1 id="striped seeds">striped seeds:</h1>
+        <h1 id="withered seeds">withered seeds:</h1>
+        <h1 id="sum">sum =</h1>
+        <form action="/pic" onsubmit="return sendFrame_pic();" target="_blank">
+          <button id="myButton" type="submit">ถ่ายรูป</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+    <script>
+      // ตัวแปร socket และการกำหนดค่าจะอยู่ในฟังก์ชัน window.onload
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const context = canvas.getContext("2d");
+        socket = io.connect("http://127.0.0.1:5000");
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((stream) => {
+            video.srcObject = stream;
+            video.play();
+            setInterval(sendFrame, 200);
+          })
+          .catch((err) => {
+            console.error("Error accessing the camera: " + err);
+          });
+
+        function sendFrame() {
+          console.log("Sending frame...");
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const imageData = canvas.toDataURL("image/jpeg");
+          socket.emit("frame", imageData);
+          socket.on("response", function (data) {
+            document.getElementById("pic").src =
+              "data:image/jpeg;base64," +
+              btoa(String.fromCharCode.apply(null, new Uint8Array(data.frame)));
+            document.getElementById("Broken brown").textContent =
+              "Broken brown: " + data.num[0];
+            // ข้อมูลอื่นๆ...
+            var sum = data.num.reduce((total, current) => total + current, 0);
+            document.getElementById("sum").textContent = "sum: " + sum;
+          });
+        }
+      // ฟังก์ชันสำหรับการส่งรูปภาพและเก็บใน localStorage
+      function sendFrame_pic() {
+        console.log("Sending frame...");
+        const video = document.getElementById("video");
+        const canvas = document.getElementById("canvas");
+        const context = canvas.getContext("2d");
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL("image/jpeg");
+        const dataToSend = {
+          imageData: imageData,
+        };
+        fetch("http://127.0.0.1:5000/request_pic", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(dataToSend),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data.filename);
+            const filename = data.filename;
+            window.localStorage.setItem('filename',filename)
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+    </script>
+  </body>
+</html>

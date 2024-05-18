@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Video Streaming</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: rgb(244, 244, 244);
+        margin: 0;
+        padding: 0;
+      }
+
+      #head {
+        width: 100%;
+        height: 80px;
+        background-color: rgb(0, 232, 93);
+        font-size: 50px;
+        text-align: center;
+        padding-top: 10px;
+        color: white;
+      }
+
+      #video {
+        width: 650px;
+        height: 450px;
+        margin-left: 50px;
+        float: left; /* Float the video to the left */
+      }
+
+      .rightq {
+        width: calc(
+          100% - 700px
+        ); /* Adjusted width to fit in the remaining space */
+        height: 500px;
+
+        float: left; /* Float the rightq div to the left */
+      }
+
+      .rightq h1 {
+        font-size: 18px;
+        margin: 5px 0;
+        padding-left: 50px;
+      }
+      .container {
+        margin-top: 40px;
+      }
+
+      #sum {
+        color: rgb(7, 240, 7);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="head">Capture Object CORN</div>
+    <div class="container">
+      <div class="vdo">
+        <img id="pic" />
+      </div>
+
+      <div class="rightq">
+        <h1 id="Broken brown">Broken brown:</h1>
+        <h1 id="Broken seeds">Broken seeds:</h1>
+        <h1 id="Broken_dirty">Broken_dirty:</h1>
+        <h1 id="Dirty cracked">Dirty cracked:</h1>
+        <h1 id="Full broken">Full broken:</h1>
+        <h1 id="black middle">black middle:</h1>
+        <h1 id="black spots">black spots:</h1>
+        <h1 id="borer moth">black middle:</h1>
+        <h1 id="clean broken">clean broken:</h1>
+        <h1 id="germinated seeds">germinated seeds:</h1>
+        <h1 id="honey colored seeds">honey colored seeds:</h1>
+        <h1 id="mold spores">mold spores:</h1>
+        <h1 id="moldy">moldy:</h1>
+        <h1 id="pale seeds">pale seeds:</h1>
+        <h1 id="pink marks">pink marks:</h1>
+        <h1 id="seeds are brown">seeds are brown:</h1>
+        <h1 id="striped seeds">striped seeds:</h1>
+        <h1 id="withered seeds">withered seeds:</h1>
+        <h1 id="sum">sum =</h1>
+        <form action="/">
+            <button id="myButton">บันทึกรูป</button>
+            <button id="DeletButton">ยกเลิก</button>
+        </form>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script type="text/javascript">
+      const flie = window.localStorage.getItem('filename')
+      console.log("fliename:"+flie)
+      var socket = io.connect(
+        "http://127.0.0.1:5000"
+      );
+      var filename = null;
+      // เมื่อข้อมูล video_frame มาถึง
+      socket.on("frame", function (data) {
+        filename = data.filename; // รับค่าตัวpath filename
+        // แสดงภาพที่ส่งมาจากเซิร์ฟเวอร์ในตัว <img>
+        document.getElementById("pic").src =
+          "data:image/jpeg;base64," +
+          btoa(String.fromCharCode.apply(null, new Uint8Array(data.frame)));
+        // อัปเดตค่า num ที่ส่งกลับมาจากเซิร์ฟเวอร์ในหน้า HTML
+        document.getElementById("Broken brown").textContent =
+          "Broken brown: " + data.num[0];
+        document.getElementById("Broken seeds").textContent =
+          "Broken seeds: " + data.num[1];
+        document.getElementById("Broken_dirty").textContent =
+          "Broken_dirty: " + data.num[2];
+        document.getElementById("Dirty cracked").textContent =
+          "Dirty cracked: " + data.num[3];
+        document.getElementById("Full broken").textContent =
+          "Full broken: " + data.num[4];
+        document.getElementById("black middle").textContent =
+          "black middle: " + data.num[5];
+        document.getElementById("black spots").textContent =
+          "black spots: " + data.num[6];
+        document.getElementById("borer moth").textContent =
+          "borer moth: " + data.num[7];
+        document.getElementById("clean broken").textContent =
+          "clean broken: " + data.num[8];
+        document.getElementById("germinated seeds").textContent =
+          "germinated seeds: " + data.num[9];
+        document.getElementById("honey colored seeds").textContent =
+          "honey colored seeds: " + data.num[10];
+        document.getElementById("mold spores").textContent =
+          "mold spores: " + data.num[11];
+        document.getElementById("moldy").textContent = "moldy: " + data.num[12];
+        document.getElementById("pale seeds").textContent =
+          "pale seeds: " + data.num[13];
+        document.getElementById("pink marks").textContent =
+          "pink marks: " + data.num[14];
+        document.getElementById("seeds are brown").textContent =
+          "seeds are brown: " + data.num[15];
+        document.getElementById("striped seeds").textContent =
+          "striped seeds: " + data.num[16];
+        document.getElementById("withered seeds").textContent =
+          "withered seeds: " + data.num[17];
+        //SUM
+        var sum = data.num.reduce((total, current) => total + current, 0);
+        document.getElementById("sum").textContent = "sum: " + sum;
+      });
+      // ส่งข้อความ request_video เพื่อขอข้อมูลวิดีโอ
+      socket.emit("request_pic");
+
+      document.getElementById('DeletButton').addEventListener('click', function() {
+            const dataToSend = {
+                filename : filename
+            };
+            console.log(filename)
+            fetch('http://127.0.0.1:5000/delete_capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dataToSend)
+               
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+        });
+    </script>
+  </body>
+</html>
