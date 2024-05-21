@@ -16,14 +16,15 @@ app.config['JSON_AS_ASCII'] = False
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
-host = '192.168.2.130'
-user = 'test'
-password = 'test'
-db = 'cornai'
+mydb = mysql.connector.connect(
+    host='192.168.2.130',
+    user='test',
+    password='test',
+    database='cornai'
+)
 
 @app.route('/api/cornai' ,methods=['GET'])
 def select():
-    mydb = mysql.connector.connect(host = host,user= user,password= password ,db=db)
     mycursor = mydb.cursor(dictionary=True)
     mycursor.execute("SELECT * FROM `products`")
     myresult = mycursor.fetchall()
@@ -32,7 +33,6 @@ def select():
 @app.route('/api/cornai' ,methods=['POST'])
 def insert():
     data = request.get_json()
-    mydb = mysql.connector.connect(host = host,user= user,password= password ,db=db)
     mycursor = mydb.cursor(dictionary=True)
     sql = """
             INSERT INTO `products`(`id`, `BreakClean`, `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `results`, `status`, `date`, `picture`)
@@ -106,13 +106,15 @@ def handle_frame(data):
         else:
             return "Error: Failed to grab frame from camera"
 
-@app.route('/image', methods = ['GET'])
+@app.route('/image', methods=['GET'])
 def image():
-    print("sssssssssssss")
     filename = request.args.get('filename')
-    print("aaaaa="+filename)
-    if(filename):
-        return send_file(filename, mimetype='image/jpeg')
+    print("aaaaa=" + filename)
+    file_path = os.path.join(app.root_path, filename) 
+    if os.path.exists(file_path):  # ตรวจสอบว่าไฟล์มีอยู่จริงหรือไม่
+        return send_file(file_path, mimetype='image/jpeg')
+    else:
+        return "File not found", 404  # ส่งโค้ด 404 หากไม่พบไฟล์
 
 
 if __name__ == '__main__':
