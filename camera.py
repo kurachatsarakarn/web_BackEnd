@@ -4,14 +4,14 @@ from ultralytics import YOLO
 from datetime import datetime
 
 # opening the file in read mode
-with open("utils/demo.txt", "r") as my_file:
+with open("utils/new.txt", "r") as my_file:
     class_list = my_file.read().split("\n")
     my_file.close()
 # Generate random colors for class list
 detection_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(len(class_list))]
 
 # load a pretrained YOLOv8n model
-model = YOLO("weights/demo.pt", "v8")
+model = YOLO("weights/new.pt", "v8")
 save_frame = None
 
 class VideoCamera(object):

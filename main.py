@@ -1,4 +1,4 @@
-from flask import Flask, render_template,request,jsonify,send_file
+from flask import Flask,render_template,request,jsonify,send_file
 from flask_socketio import SocketIO
 from camera import VideoCamera
 import os
@@ -27,7 +27,6 @@ def handle_request_video():
     img_data = base64.b64decode(encoded)
     image = Image.open(BytesIO(img_data))
     frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-    print(datas)
     if frame is not None:
         frames, num,filename = camera.get_pic(frame)
         response_data = {
@@ -74,7 +73,9 @@ def handle_frame(data):
 
 @app.route('/image', methods = ['GET'])
 def image():
+    print("sssssssssssss")
     filename = request.args.get('filename')
+    print("aaaaa="+filename)
     if(filename):
         return send_file(filename, mimetype='image/jpeg')
 
