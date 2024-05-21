@@ -9,3 +9,4 @@ numpy
 flask-cors
 flask-socketio
 mysql-connector-python
+werkzeug

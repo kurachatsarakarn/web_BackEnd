@@ -1,4 +1,6 @@
-from flask import Flask,render_template,request,jsonify,send_file
+from flask import Flask,render_template,request,jsonify,send_file,make_response
+import mysql.connector
+from mysql.connector import Error
 from flask_socketio import SocketIO
 from camera import VideoCamera
 import os
@@ -10,9 +12,22 @@ from io import BytesIO
 from PIL import Image
 
 app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
+host = '192.168.2.130'
+user = 'test'
+password = 'test'
+db = 'cornai'
+
+@app.route('/api/cornai' ,methods=['GET'])
+def read():
+    mydb = mysql.connector.connect(host = host,user= user,password= password ,db=db)
+    mycursor = mydb.cursor(dictionary=True)
+    mycursor.execute("SELECT * FROM `products`")
+    myresult = mycursor.fetchall()
+    return make_response(jsonify(myresult),200)
 
 @app.route('/')
 def index():
