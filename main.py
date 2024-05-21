@@ -22,12 +22,32 @@ password = 'test'
 db = 'cornai'
 
 @app.route('/api/cornai' ,methods=['GET'])
-def read():
+def select():
     mydb = mysql.connector.connect(host = host,user= user,password= password ,db=db)
     mycursor = mydb.cursor(dictionary=True)
     mycursor.execute("SELECT * FROM `products`")
     myresult = mycursor.fetchall()
     return make_response(jsonify(myresult),200)
+
+@app.route('/api/cornai' ,methods=['POST'])
+def insert():
+    data = request.get_json()
+    mydb = mysql.connector.connect(host = host,user= user,password= password ,db=db)
+    mycursor = mydb.cursor(dictionary=True)
+    sql = """
+            INSERT INTO `products`(`id`, `BreakClean`, `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `results`, `status`, `date`, `picture`)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+    val = (
+            data['id'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+            data['MoldSpores'], data['broken'], data['fullbrokenseeds'], data['results'],
+            data['status'], data['date'], data['picture']
+        )
+        
+    mycursor.execute(sql, val)
+    mydb.commit()
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
 
 @app.route('/')
 def index():
