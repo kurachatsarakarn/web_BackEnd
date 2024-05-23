@@ -16,43 +16,109 @@ app.config['JSON_AS_ASCII'] = False
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
-mydb = mysql.connector.connect(
-    host='192.168.2.130',
-    user='test',
-    password='test',
-    database='cornai'
-)
 
-@app.route('/api/cornai' ,methods=['GET'])
-def select():
-    mycursor = mydb.cursor(dictionary=True)
-    mycursor.execute("SELECT * FROM `products`")
-    myresult = mycursor.fetchall()
-    return make_response(jsonify(myresult),200)
-
-@app.route('/api/cornai' ,methods=['POST'])
-def insert():
-    data = request.get_json()
-    mycursor = mydb.cursor(dictionary=True)
-    sql = """
-            INSERT INTO `products`(`id`, `BreakClean`, `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `results`, `status`, `date`, `picture`)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-    val = (
-            data['id'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
-            data['MoldSpores'], data['broken'], data['fullbrokenseeds'], data['results'],
-            data['status'], data['date'], data['picture']
-        )
-        
-    mycursor.execute(sql, val)
-    mydb.commit()
-    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+host='192.168.2.130'
+user='test'
+password='test'
+database='cornai'
 
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
+
+
+#api sql เส้น product
+@app.route('/api/products' ,methods=['GET'])
+def products():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    mycursor.execute("SELECT * FROM `products`")
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
+
+@app.route('/api/products/<lots>' ,methods=['GET'])
+def products_id_losts(lots):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    sql = "SELECT * FROM products  WHERE products.id_lots = %s"
+    val = "%{lots}%"
+    mycursor.execute(sql, (val,))
+    result = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(result),200)
+
+@app.route('/api/products' ,methods=['POST'])
+def products_insert():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    data = request.get_json()
+    mycursor = mydb.cursor(dictionary=True)
+    sql = """
+            INSERT INTO `products`((`id_lots`, `id_user`, `BreakClean`, `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """
+    val = (
+            data['id'],data['user'],data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+            data['MoldSpores'], data['broken'], data['fullbrokenseeds'],data['path']
+        )
+        
+    mycursor.execute(sql, val)
+    mydb.commit()
+    mydb.close()
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+@app.route('/api/products', methods=['PUT'])
+def update_products():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    data = request.get_json()
+    mycursor = mydb.cursor(dictionary=True)
+    sql = "UPDATE `products` SET `id_lots`='%s' WHERE products.id = %s;"
+    val = (data['id_lots'],data['id'])
+    mycursor.execute(sql, val)
+    mydb.commit()
+    mydb.close()
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+@app.route('/api/products/<id>', methods=['DELETE'])
+def delete_products(id):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    data = request.get_json()
+    mycursor = mydb.cursor(dictionary=True)
+    sql = "DELETE FROM `products` WHERE products.id = %s;"
+    val = {id}
+    mycursor.execute(sql, val)  
+    mydb.commit()
+    mydb.close()
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+
+
+#api sql  lots
+@app.route('/api/lots',methods=['GET'])
+def lots():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    mycursor.execute("SELECT * FROM `lots`")
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
+
+@app.route('/api/lots/<id>',methods=['GET'])
+def lots_like_id(id):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    sql = ("SELECT * FROM lots WHERE lots.name LIKE '%s';")
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
+
+
+
+
+
+# api เส้น detect 
 @app.route('/request_pic', methods=['POST'])
 def handle_request_video():
     # แปลง base64 กลับมาเป็นภาพ
@@ -102,7 +168,6 @@ def handle_frame(data):
             # ส่งข้อมูลเฟรมและตัวเลข num ผ่าน Socket.IO ไปยังเว็บไซต์
             print(num)
             socketio.emit('response', {'frame':frames, 'num': num})
-            # socketio.emit('response', {'image': base64.b64encode(frames).decode('utf-8'), 'num': num})
         else:
             return "Error: Failed to grab frame from camera"
 
