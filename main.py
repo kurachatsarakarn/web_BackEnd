@@ -25,71 +25,91 @@ database='cornai'
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return ""
 
 
 
 #api product
 @app.route('/api/products' ,methods=['GET'])
 def products():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    mycursor.execute("SELECT * FROM `products`")
-    myresult = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        mycursor.execute("SELECT * FROM `products`")
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)    
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/products/<id>' ,methods=['GET'])
 def products_id_losts(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = "SELECT * FROM products  WHERE products.id_lots = %s;"
-    val = (f"{id}",)
-    mycursor.execute(sql,val)
-    result = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = "SELECT * FROM products  WHERE products.id_lots = %s;"
+        val = (f"{id}",)
+        mycursor.execute(sql,val)
+        result = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(result),200)
 
 @app.route('/api/products' ,methods=['POST'])
 def products_insert():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    data = request.get_json()
-    mycursor = mydb.cursor(dictionary=True)
-    sql = """INSERT INTO `products`(`id_lots`, `id_user`, `BreakClean`, 
-            `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-    val = (
-            data['id'],data['user'],data['BreakClean'], data['CompleteSeeds'], data['Dust'],
-            data['MoldSpores'], data['broken'], data['fullbrokenseeds'],data['path']
-        )
-        
-    mycursor.execute(sql, val)
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        data = request.get_json()
+        mycursor = mydb.cursor(dictionary=True)
+        sql = """INSERT INTO `products`(`id_lots`, `id_user`, `BreakClean`, 
+                `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+        val = (
+                data['id'],data['user'],data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+                data['MoldSpores'], data['broken'], data['fullbrokenseeds'],data['path']
+            )
+            
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)    
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/products', methods=['PUT'])
 def products_update():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    data = request.get_json()
-    mycursor = mydb.cursor(dictionary=True)
-    sql = "UPDATE `products` SET `id_lots`=%s WHERE products.id = %s;"
-    val = (data['id_lots'],data['id'])
-    mycursor.execute(sql, val)
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        data = request.get_json()
+        mycursor = mydb.cursor(dictionary=True)
+        sql = "UPDATE `products` SET `id_lots`=%s WHERE products.id = %s;"
+        val = (data['id_lots'],data['id'])
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/products/<id>', methods=['DELETE'])
 def products_delete(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = "DELETE FROM `products` WHERE products.id = %s;"
-    val = (f"{id}",)
-    mycursor.execute(sql, val)  
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = "DELETE FROM `products` WHERE products.id = %s;"
+        val = (f"{id}",)
+        mycursor.execute(sql, val)  
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 
@@ -97,57 +117,77 @@ def products_delete(id):
 #api lots
 @app.route('/api/lots',methods=['GET'])
 def lots():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    mycursor.execute("SELECT * FROM `lots`")
-    myresult = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        mycursor.execute("SELECT * FROM `lots`")
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/lots/search/<id>',methods=['GET'])
 def lots_like_id(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = ("SELECT * FROM lots WHERE lots.name LIKE %s;")
-    val = (f"%{id}%",) 
-    mycursor.execute(sql, val)
-    myresult = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = ("SELECT * FROM lots WHERE lots.name LIKE %s;")
+        val = (f"%{id}%",) 
+        mycursor.execute(sql, val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/lots/<id>', methods=['GET'])
 def lots_id(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = ("SELECT * FROM lots WHERE lots.id = %s;")
-    val = (f"{id}",)
-    mycursor.execute(sql,val)
-    myresult = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = ("SELECT * FROM lots WHERE lots.id = %s;")
+        val = (f"{id}",)
+        mycursor.execute(sql,val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/lots', methods=['POST'])
 def lots_insert():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    data = request.get_json()
-    name = "lots_"+data['date']
-    sql = ("INSERT INTO `lots`(`name`, `date`) VALUES (%s,%s);")
-    val = (name,data['date'])
-    mycursor.execute(sql, val)
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        data = request.get_json()
+        name = "lots_"+data['date']
+        sql = ("INSERT INTO `lots`(`name`, `date`) VALUES (%s,%s);")
+        val = (name,data['date'])
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/lots/<id>', methods=['DELETE'])
 def lots_delete(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = ("DELETE FROM lots WHERE lots.id = %s;")
-    val =(f"{id}",)
-    mycursor.execute(sql, val)
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = ("DELETE FROM lots WHERE lots.id = %s;")
+        val =(f"{id}",)
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 # api Login
@@ -182,26 +222,34 @@ def login():
 #api status
 @app.route('/api/status/<id>',methods=['GET'])
 def status_id(id):
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    sql = "SELECT * FROM status WHERE status.id_lots = %s ORDER BY status.id DESC LIMIT 1;"
-    val = (f"{id}",)
-    mycursor.execute(sql,val)
-    myresult = mycursor.fetchall()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = "SELECT * FROM status WHERE status.id_lots = %s ORDER BY status.id DESC LIMIT 1;"
+        val = (f"{id}",)
+        mycursor.execute(sql,val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/status',methods=['POST'])
 def status_insert():
-    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    mycursor = mydb.cursor(dictionary=True)
-    data = request.get_json()
-    sql = """INSERT INTO `status`(`id_lots`, `id_user`, `status`, `date`) VALUES 
-    (%s,%s,%s,%s)"""
-    val = (data['id_lots'],data['id_user'],data['status'],data['date'])
-    mycursor.execute(sql,val)
-    mydb.commit()
-    mydb.close()
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        data = request.get_json()
+        sql = """INSERT INTO `status`(`id_lots`, `id_user`, `status`, `date`) VALUES 
+        (%s,%s,%s,%s)"""
+        val = (data['id_lots'],data['id_user'],data['status'],data['date'])
+        mycursor.execute(sql,val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 
