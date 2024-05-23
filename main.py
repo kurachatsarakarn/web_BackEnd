@@ -29,7 +29,7 @@ def index():
 
 
 
-#api sql เส้น product
+#api product
 @app.route('/api/products' ,methods=['GET'])
 def products():
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
@@ -94,7 +94,7 @@ def products_delete(id):
 
 
 
-#api sql  lots
+#api lots
 @app.route('/api/lots',methods=['GET'])
 def lots():
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
@@ -150,45 +150,45 @@ def lots_delete(id):
     mydb.close()
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
-#######################################################
-#Login
-
-@app.route('/login', methods=['GET', 'POST'])
+# api Login
+@app.route('/api/login', methods=['POST'])
 def login():
-    if request.method == 'POST':
-        usernameu = request.form['username']
-        passwordu = request.form['password']
+    data = request.get_json()
+    if data:
+        usernameu = data['username']
+        passwordu = data['password']
         try:
             # เปิดการเชื่อมต่อกับฐานข้อมูล
             mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
             mycursor = mydb.cursor(dictionary=True)
-
-#ใช้คำสั่ง SQL พร้อมกับการป้องกัน SQL Injection โดยใช้พารามิเตอร์
+            #ใช้คำสั่ง SQL พร้อมกับการป้องกัน SQL Injection โดยใช้พารามิเตอร์
             sql = "SELECT * FROM user WHERE name = %s AND password = %s"
             mycursor.execute(sql, (usernameu, passwordu))
-
-#ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
+            #ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
             user_record = mycursor.fetchone()
-
             if user_record:
                 return make_response(jsonify({"user": usernameu}),200)
             else:
                 return make_response(jsonify({"msg": "not found user or password"}),401)
-
         except Error as e:
                 print(f"Error: {e}")
-                return 'Internal Server Error', 500
-
+                return make_response(jsonify({"msg": e}),500)
         finally:
             if mycursor:
                 mycursor.close()
             if mydb:
                 mydb.close()
 
-    return render_template('loginpage.html')
+#api status
+@app.route('/api/status/<id>',methods=['GET'])
+def lots(id):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    mycursor.execute("SELECT * FROM `status` WHERE ")
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
 
-
-#######################################################
 
 
 
