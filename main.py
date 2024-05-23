@@ -115,18 +115,54 @@ def products_delete(id):
 
 
 #api lots
-@app.route('/api/lots',methods=['GET'])
+@app.route('/api/lots', methods=['POST'])
 def lots():
+    try:
+        data = request.get_json()
+        page = data.get('page')
+        page_value = int(page)
+        max_value = (page_value*8)-1 
+        min_value = (page_value-1)*8
+        print(max_value)
+        print(min_value)
+        if max_value is None or min_value is None:
+            return make_response(jsonify({"msg": "Missing 'max' or 'min' in request"}), 400)
+
+        query = """
+            SELECT * 
+            FROM lots 
+            ORDER BY lots.id DESC 
+            LIMIT %s OFFSET %s;
+        """
+        
+        values = (max_value, min_value)
+
+        with mysql.connector.connect(host=host, user=user, password=password, database=database) as mydb:
+            with mydb.cursor(dictionary=True) as mycursor:
+                mycursor.execute(query, values)
+                myresult = mycursor.fetchall()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": str(e)}), 500)
+
+    return make_response(jsonify(myresult), 200)
+
+@app.route('/api/lots/sum')
+def lots_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
-        mycursor.execute("SELECT * FROM `lots`")
+        mycursor.execute("SELECT COUNT(lots.id) as sum FROM lots;")
         myresult = mycursor.fetchall()
+        count = myresult[0]['sum']
+        sum = count//8
+        if(count%8 != 0):
+            sum += 1
         mydb.close()
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
-    return make_response(jsonify(myresult),200)
+    return make_response(jsonify(sum),200)
 
 @app.route('/api/lots/search/<id>',methods=['GET'])
 def lots_like_id(id):
