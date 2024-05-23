@@ -44,8 +44,8 @@ def products_id_losts(lots):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
     sql = "SELECT * FROM products  WHERE products.id_lots = %s"
-    val = "%{lots}%"
-    mycursor.execute(sql, (val,))
+    val = {lots}
+    mycursor.execute(sql, (val))
     result = mycursor.fetchall()
     mydb.close()
     return make_response(jsonify(result),200)
@@ -70,7 +70,7 @@ def products_insert():
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/products', methods=['PUT'])
-def update_products():
+def products_update():
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     data = request.get_json()
     mycursor = mydb.cursor(dictionary=True)
@@ -82,9 +82,8 @@ def update_products():
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/products/<id>', methods=['DELETE'])
-def delete_products(id):
+def products_delete(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
-    data = request.get_json()
     mycursor = mydb.cursor(dictionary=True)
     sql = "DELETE FROM `products` WHERE products.id = %s;"
     val = {id}
@@ -105,17 +104,51 @@ def lots():
     mydb.close()
     return make_response(jsonify(myresult),200)
 
-@app.route('/api/lots/<id>',methods=['GET'])
+@app.route('/api/lots/search/<id>',methods=['GET'])
 def lots_like_id(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
     sql = ("SELECT * FROM lots WHERE lots.name LIKE '%s';")
+    val = "%{id}%"
+    mycursor.execute(sql, val)
     myresult = mycursor.fetchall()
     mydb.close()
     return make_response(jsonify(myresult),200)
 
+@app.route('/api/lots/<id>', methods=['GET'])
+def lots_id(id):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    sql = ("SELECT * FROM lots WHERE lots.id = '%s';")
+    val = {id}
+    mycursor.execute(sql, val)
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
 
+@app.route('/api/lots', methods=['POST'])
+def lots_insert():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    data = request.get_json()
+    name = "lots_"+data['date']
+    sql = ("SINSERT INTO `lots`(`name`, `date`) VALUES ('%s','%s')")
+    val = name,data['date']
+    mycursor.execute(sql, val)
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
 
+@app.route('/api/lots/<id>', methods=['DELETE'])
+def lots_insert(id):
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    sql = ("DELETE FROM lots WHERE lots.id = '%s';")
+    val ={id}
+    mycursor.execute(sql, val)
+    myresult = mycursor.fetchall()
+    mydb.close()
+    return make_response(jsonify(myresult),200)
 
 
 # api เส้น detect 
