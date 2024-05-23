@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request,jsonify,send_file,make_response
+from flask import Flask,render_template,request,jsonify,send_file,make_response,session
 import mysql.connector
 from mysql.connector import Error
 from flask_socketio import SocketIO
@@ -39,13 +39,13 @@ def products():
     mydb.close()
     return make_response(jsonify(myresult),200)
 
-@app.route('/api/products/<lots>' ,methods=['GET'])
-def products_id_losts(lots):
+@app.route('/api/products/<id>' ,methods=['GET'])
+def products_id_losts(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
-    sql = "SELECT * FROM products  WHERE products.id_lots = %s"
-    val = {lots}
-    mycursor.execute(sql, (val))
+    sql = "SELECT * FROM products  WHERE products.id_lots = %s;"
+    val = (f"{id}",)
+    mycursor.execute(sql,val)
     result = mycursor.fetchall()
     mydb.close()
     return make_response(jsonify(result),200)
@@ -55,9 +55,9 @@ def products_insert():
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     data = request.get_json()
     mycursor = mydb.cursor(dictionary=True)
-    sql = """
-            INSERT INTO `products`((`id_lots`, `id_user`, `BreakClean`, `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+    sql = """INSERT INTO `products`(`id_lots`, `id_user`, `BreakClean`, 
+            `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
     val = (
             data['id'],data['user'],data['BreakClean'], data['CompleteSeeds'], data['Dust'],
@@ -74,7 +74,7 @@ def products_update():
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     data = request.get_json()
     mycursor = mydb.cursor(dictionary=True)
-    sql = "UPDATE `products` SET `id_lots`='%s' WHERE products.id = %s;"
+    sql = "UPDATE `products` SET `id_lots`=%s WHERE products.id = %s;"
     val = (data['id_lots'],data['id'])
     mycursor.execute(sql, val)
     mydb.commit()
@@ -86,7 +86,7 @@ def products_delete(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
     sql = "DELETE FROM `products` WHERE products.id = %s;"
-    val = {id}
+    val = (f"{id}",)
     mycursor.execute(sql, val)  
     mydb.commit()
     mydb.close()
@@ -108,8 +108,8 @@ def lots():
 def lots_like_id(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
-    sql = ("SELECT * FROM lots WHERE lots.name LIKE '%s';")
-    val = "%{id}%"
+    sql = ("SELECT * FROM lots WHERE lots.name LIKE %s;")
+    val = (f"%{id}%",) 
     mycursor.execute(sql, val)
     myresult = mycursor.fetchall()
     mydb.close()
@@ -119,8 +119,8 @@ def lots_like_id(id):
 def lots_id(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
-    sql = ("SELECT * FROM lots WHERE lots.id = '%s';")
-    val = {id}
+    sql = ("SELECT * FROM lots WHERE lots.id = %s;")
+    val = (f"{id}",)
     mycursor.execute(sql, val)
     myresult = mycursor.fetchall()
     mydb.close()
@@ -132,23 +132,65 @@ def lots_insert():
     mycursor = mydb.cursor(dictionary=True)
     data = request.get_json()
     name = "lots_"+data['date']
-    sql = ("SINSERT INTO `lots`(`name`, `date`) VALUES ('%s','%s')")
-    val = name,data['date']
+    sql = ("INSERT INTO `lots`(`name`, `date`) VALUES (%s,%s);")
+    val = (name,data['date'])
     mycursor.execute(sql, val)
-    myresult = mycursor.fetchall()
+    mydb.commit()
     mydb.close()
-    return make_response(jsonify(myresult),200)
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 @app.route('/api/lots/<id>', methods=['DELETE'])
-def lots_insert(id):
+def lots_delete(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
-    sql = ("DELETE FROM lots WHERE lots.id = '%s';")
-    val ={id}
+    sql = ("DELETE FROM lots WHERE lots.id = %s;")
+    val =(f"{id}",)
     mycursor.execute(sql, val)
-    myresult = mycursor.fetchall()
+    mydb.commit()
     mydb.close()
-    return make_response(jsonify(myresult),200)
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+#######################################################
+#Login
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        usernameu = request.form['username']
+        passwordu = request.form['password']
+        try:
+            # เปิดการเชื่อมต่อกับฐานข้อมูล
+            mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
+            mycursor = mydb.cursor(dictionary=True)
+
+#ใช้คำสั่ง SQL พร้อมกับการป้องกัน SQL Injection โดยใช้พารามิเตอร์
+            sql = "SELECT * FROM user WHERE name = %s AND password = %s"
+            mycursor.execute(sql, (usernameu, passwordu))
+
+#ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
+            user_record = mycursor.fetchone()
+
+            if user_record:
+                return make_response(jsonify({"user": usernameu}),200)
+            else:
+                return make_response(jsonify({"msg": "not found user or password"}),401)
+
+        except Error as e:
+                print(f"Error: {e}")
+                return 'Internal Server Error', 500
+
+        finally:
+            if mycursor:
+                mycursor.close()
+            if mydb:
+                mydb.close()
+
+    return render_template('loginpage.html')
+
+
+#######################################################
+
+
 
 
 # api เส้น detect 
@@ -213,6 +255,8 @@ def image():
         return send_file(file_path, mimetype='image/jpeg')
     else:
         return "File not found", 404  # ส่งโค้ด 404 หากไม่พบไฟล์
+
+
 
 
 if __name__ == '__main__':
