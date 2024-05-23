@@ -121,7 +121,7 @@ def lots_id(id):
     mycursor = mydb.cursor(dictionary=True)
     sql = ("SELECT * FROM lots WHERE lots.id = %s;")
     val = (f"{id}",)
-    mycursor.execute(sql, val)
+    mycursor.execute(sql,val)
     myresult = mycursor.fetchall()
     mydb.close()
     return make_response(jsonify(myresult),200)
@@ -181,15 +181,28 @@ def login():
 
 #api status
 @app.route('/api/status/<id>',methods=['GET'])
-def lots(id):
+def status_id(id):
     mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
     mycursor = mydb.cursor(dictionary=True)
-    mycursor.execute("SELECT * FROM `status` WHERE ")
+    sql = "SELECT * FROM status WHERE status.id_lots = %s ORDER BY status.id DESC LIMIT 1;"
+    val = (f"{id}",)
+    mycursor.execute(sql,val)
     myresult = mycursor.fetchall()
     mydb.close()
     return make_response(jsonify(myresult),200)
 
-
+@app.route('/api/status',methods=['POST'])
+def status_insert():
+    mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+    mycursor = mydb.cursor(dictionary=True)
+    data = request.get_json()
+    sql = """INSERT INTO `status`(`id_lots`, `id_user`, `status`, `date`) VALUES 
+    (%s,%s,%s,%s)"""
+    val = (data['id_lots'],data['id_user'],data['status'],data['date'])
+    mycursor.execute(sql,val)
+    mydb.commit()
+    mydb.close()
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 
 
