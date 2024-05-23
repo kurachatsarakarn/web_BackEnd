@@ -128,25 +128,25 @@ def lots():
         if max_value is None or min_value is None:
             return make_response(jsonify({"msg": "Missing 'max' or 'min' in request"}), 400)
 
-        query = """
-            SELECT * 
-            FROM lots 
-            ORDER BY lots.id DESC 
+        sql = """
+            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path
+            FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
+            JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
+            ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
+			on t2.max_id = lots.id
+           	ORDER BY lots.id DESC 
             LIMIT %s OFFSET %s;
         """
-        
         values = (max_value, min_value)
-
         with mysql.connector.connect(host=host, user=user, password=password, database=database) as mydb:
             with mydb.cursor(dictionary=True) as mycursor:
-                mycursor.execute(query, values)
+                mycursor.execute(sql, values)
                 myresult = mycursor.fetchall()
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": str(e)}), 500)
-
     return make_response(jsonify(myresult), 200)
-
+ 
 @app.route('/api/lots/sum')
 def lots_sum():
     try:
