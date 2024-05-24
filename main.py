@@ -244,8 +244,9 @@ def lots():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
-        sql = "SELECT * FROM `lots`"
-        myresult = mycursor.execute(sql)
+        sql = "SELECT * FROM lots;"
+        mycursor.execute(sql)
+        myresult = mycursor.fetchall()
         mydb.close()
         return make_response(jsonify(myresult),200)
     except Error as e:
