@@ -233,6 +233,8 @@ def login():
     if data:
         usernameu = data['username']
         passwordu = data['password']
+        mydb = None
+        mycursor = None
         try:
             # เปิดการเชื่อมต่อกับฐานข้อมูล
             mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
@@ -302,9 +304,17 @@ def handle_request_video():
     frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
     if frame is not None:
         frames, num,filename = camera.get_pic(frame)
+        print(num)
+        sum = num[0]+num[1]+num[2]+num[3]+num[4]+num[5]
+        false = num[1]
+        if(sum != 0):
+            percent = (false/sum) *100
+        else:
+            percent = 0
         response_data = {
         "num": num,      # ข้อมูลตัวเลข
-        "filename": filename  # ชื่อไฟล์
+        "filename": filename,  # ชื่อไฟล์
+        "percent": percent
         
         }
         if frames is not None: 
@@ -339,7 +349,13 @@ def handle_frame(data):
         if frames is not None: 
             # ส่งข้อมูลเฟรมและตัวเลข num ผ่าน Socket.IO ไปยังเว็บไซต์
             print(num)
-            socketio.emit('response', {'frame':frames, 'num': num})
+            sum = num[0]+num[1]+num[2]+num[3]+num[4]+num[5]
+            false = num[1]
+            if(sum != 0):
+                percent = (false/sum) *100
+            else:
+                percent = 0
+            socketio.emit('response', {'frame':frames, 'num': num,'percent':percent})
         else:
             return "Error: Failed to grab frame from camera"
 
