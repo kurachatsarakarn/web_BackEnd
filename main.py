@@ -17,11 +17,16 @@ CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
 
-host='192.168.2.130'
-user='test'
-password='test'
-database='cornai'
+# host='192.168.2.130'
+# user='test'
+# password='test'
+# database='cornai'
 
+
+host='localhost'
+user='root'
+password=''
+database='cornai'
 
 @app.route('/')
 def index():
@@ -65,16 +70,16 @@ def products_insert():
         data = request.get_json()
         mycursor = mydb.cursor(dictionary=True)
         query = "SELECT * FROM user WHERE user.name = %s"
-        valquery = (data['id'],)
-        mycursor.execute(sql,val)
+        valquery = (data['user'],)
+        mycursor.execute(query,valquery)
         result = mycursor.fetchall()
+        print(result[0]['id'])
         sql = """INSERT INTO products (id_lots, id_user, BreakClean, CompleteSeeds, Dust, MoldSpores, broken, fullbrokenseeds, path)
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (
-             data['user'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+             data['id'],result[0]['id'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
             data['MoldSpores'], data['broken'], data['fullbrokenseeds'], data['path']
         )
-        
         mycursor.execute(sql, val)
         mydb.commit()
         mycursor.close()
@@ -120,7 +125,7 @@ def products_delete(id):
 
 #api lots
 @app.route('/api/lots/<page>', methods=['GET'])
-def lots(page):
+def lots_page(page):
     try:
         page_value = int(page)
         max_value = (page_value*8)-1 
@@ -235,7 +240,7 @@ def lots_id(id):
     return make_response(jsonify(myresult),200)
 
 @app.route('/api/lots', methods=['GET'])
-def lots_insert():
+def lots():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
@@ -304,7 +309,7 @@ def login():
                 return make_response(jsonify({"msg": "not found user or password"}),401)
         except Error as e:
                 print(f"Error: {e}")
-                return make_response(jsonify({"msg": e}),500)
+                return make_response("Internal Server Error", 500)
         finally:
             if mycursor:
                 mycursor.close()
