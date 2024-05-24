@@ -10,6 +10,7 @@ import cv2
 import numpy as np
 from io import BytesIO
 from PIL import Image
+from datetime import datetime
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
@@ -260,9 +261,11 @@ def lots_insert():
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
         data = request.get_json()
-        name = "lots_"+data['date']
+        now = datetime.now()
+        current_time = now.strftime("%Y-%m-%d")
+        name = data['name']
         sql = ("INSERT INTO `lots`(`name`, `date`) VALUES (%s,%s);")
-        val = (name,data['date'])
+        val = (name,current_time)
         mycursor.execute(sql, val)
         mydb.commit()
         mydb.close()
