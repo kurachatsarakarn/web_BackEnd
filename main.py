@@ -147,7 +147,7 @@ def lots():
         return make_response(jsonify({"msg": str(e)}), 500)
     return make_response(jsonify(myresult), 200)
  
-@app.route('/api/lots/sum')
+@app.route('/api/lots/sum',methods=['GET'])
 def lots_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
@@ -164,13 +164,49 @@ def lots_sum():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(sum),200)
 
-@app.route('/api/lots/search/<id>',methods=['GET'])
-def lots_like_id(id):
+@app.route('/api/lots/search/sum',methods=['POST'])
+def lots_like_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
-        sql = ("SELECT * FROM lots WHERE lots.name LIKE %s;")
-        val = (f"%{id}%",) 
+        data = request.get_json()
+        id = data.get('id')
+        sql = "SELECT COUNT(lots.id) as sum FROM lots WHERE lots.name LIKE %s;"
+        val = (f"%{id}%",)
+        mycursor.execute(sql,val)
+        myresult = mycursor.fetchall()
+        count = myresult[0]['sum']
+        sum = count//8
+        if(count%8 != 0):
+            sum += 1
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    return make_response(jsonify(sum),200)
+
+@app.route('/api/lots/search',methods=['POST'])
+def lots_like_id():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        data = request.get_json()
+        page = data.get('page')
+        id = data.get('id')
+        page_value = int(page)
+        max_value = (page_value*8)-1 
+        min_value = (page_value-1)*8
+        sql = ("""
+        SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path
+            FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
+            JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
+            ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
+			on t2.max_id = lots.id
+            WHERE lots.name LIKE %s
+           	ORDER BY lots.id DESC 
+            LIMIT %s OFFSET %s;
+        """)
+        val = ("%"+id+"%",max_value,min_value) 
         mycursor.execute(sql, val)
         myresult = mycursor.fetchall()
         mydb.close()
