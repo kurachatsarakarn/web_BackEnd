@@ -58,30 +58,34 @@ def products_id_losts(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(result),200)
 
-@app.route('/api/products' ,methods=['POST'])
+@app.route('/api/products', methods=['POST'])
 def products_insert():
     try:
-        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
         data = request.get_json()
         mycursor = mydb.cursor(dictionary=True)
-        sql = """INSERT INTO `products`(`id_lots`, `id_user`, `BreakClean`, 
-                `CompleteSeeds`, `Dust`, `MoldSpores`, `broken`, `fullbrokenseeds`, `path`)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """
+        query = "SELECT * FROM user WHERE user.name = %s"
+        valquery = (data['id'],)
+        mycursor.execute(sql,val)
+        result = mycursor.fetchall()
+        sql = """INSERT INTO products (id_lots, id_user, BreakClean, CompleteSeeds, Dust, MoldSpores, broken, fullbrokenseeds, path)
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (
-                data['id'],data['user'],data['BreakClean'], data['CompleteSeeds'], data['Dust'],
-                data['MoldSpores'], data['broken'], data['fullbrokenseeds'],data['path']
-            )
-            
+             data['user'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+            data['MoldSpores'], data['broken'], data['fullbrokenseeds'], data['path']
+        )
+        
         mycursor.execute(sql, val)
         mydb.commit()
+        mycursor.close()
         mydb.close()
+        return make_response(jsonify({"rowcount": mycursor.rowcount}), 200)
     except Error as e:
-        print(f"Error: {e}")
-        return make_response(jsonify({"msg": e}),500)    
-    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+        error_msg = str(e)
+        print(f"Error: {error_msg}")
+        return make_response(jsonify({"msg": error_msg}), 500)
 
-@app.route('/api/products', methods=['PUT'])
+@app.route('/api/products', methods=['  PUT'])
 def products_update():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
@@ -115,11 +119,9 @@ def products_delete(id):
 
 
 #api lots
-@app.route('/api/lots', methods=['POST'])
-def lots():
+@app.route('/api/lots/<page>', methods=['GET'])
+def lots(page):
     try:
-        data = request.get_json()
-        page = data.get('page')
         page_value = int(page)
         max_value = (page_value*8)-1 
         min_value = (page_value-1)*8
@@ -147,6 +149,8 @@ def lots():
         return make_response(jsonify({"msg": str(e)}), 500)
     return make_response(jsonify(myresult), 200)
  
+
+
 @app.route('/api/lots/sum',methods=['GET'])
 def lots_sum():
     try:
@@ -229,6 +233,20 @@ def lots_id(id):
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
+
+@app.route('/api/lots', methods=['GET'])
+def lots_insert():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = "SELECT * FROM `lots`"
+        myresult = mycursor.execute(sql)
+        mydb.close()
+        return make_response(jsonify(myresult),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+
 
 @app.route('/api/lots', methods=['POST'])
 def lots_insert():
