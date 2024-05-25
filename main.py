@@ -184,7 +184,7 @@ def lots_sum():
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
-    return make_response(jsonify(sum),200)
+    return make_response(jsonify({"sum":sum}),200)
 
 #ดึงจำนวนหน้าที่ค้นหา
 @app.route('/api/lots/search/sum',methods=['POST'])
@@ -206,7 +206,7 @@ def lots_like_sum():
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
-    return make_response(jsonify(sum),200)
+    return make_response(jsonify({"sum":sum}),200)
 
 #ดึงหน้าที่ค้นหา
 @app.route('/api/lots/search',methods=['POST'])
