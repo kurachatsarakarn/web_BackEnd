@@ -148,11 +148,12 @@ def lots_page(page):
             return make_response(jsonify({"msg": "Missing 'max' or 'min' in request"}), 400)
 
         sql = """
-            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path
+            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path , status.status as status
             FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
             JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
             ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
-			on t2.max_id = lots.id
+			on t2.max_id = lots.id 
+            left JOIN status ON lots.id = status.id_lots
            	ORDER BY lots.id DESC 
             LIMIT %s OFFSET %s;
         """
