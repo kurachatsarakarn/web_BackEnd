@@ -28,13 +28,16 @@ user='root'
 password=''
 database='cornai'
 
+######################################################################
+#API base
 @app.route('/')
 def index():
     return ""
+######################################################################
 
-
-
-#api product
+######################################################################
+# API Product
+#ดึงproductทั้งหมด
 @app.route('/api/products' ,methods=['GET'])
 def products():
     try:
@@ -48,6 +51,7 @@ def products():
         return make_response(jsonify({"msg": e}),500)    
     return make_response(jsonify(myresult),200)
 
+#ดึงproductตามid
 @app.route('/api/products/<id>' ,methods=['GET'])
 def products_id_losts(id):
     try:
@@ -63,6 +67,7 @@ def products_id_losts(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(result),200)
 
+#insert product
 @app.route('/api/products', methods=['POST'])
 def products_insert():
     try:
@@ -90,7 +95,8 @@ def products_insert():
         print(f"Error: {error_msg}")
         return make_response(jsonify({"msg": error_msg}), 500)
 
-@app.route('/api/products', methods=['  PUT'])
+#update product
+@app.route('/api/products', methods=['PUT'])
 def products_update():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
@@ -106,6 +112,7 @@ def products_update():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+#delete product
 @app.route('/api/products/<id>', methods=['DELETE'])
 def products_delete(id):
     try:
@@ -120,10 +127,14 @@ def products_delete(id):
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+######################################################################
 
 
 
-#api lots
+######################################################################
+# API Lots
+
+#ดึงข้อมูลเป็นหน้าๆ
 @app.route('/api/lots/<page>', methods=['GET'])
 def lots_page(page):
     try:
@@ -155,7 +166,7 @@ def lots_page(page):
     return make_response(jsonify(myresult), 200)
  
 
-
+#ดึงจำนวนหน้า
 @app.route('/api/lots/sum',methods=['GET'])
 def lots_sum():
     try:
@@ -173,6 +184,7 @@ def lots_sum():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(sum),200)
 
+#ดึงจำนวนหน้าที่ค้นหา
 @app.route('/api/lots/search/sum',methods=['POST'])
 def lots_like_sum():
     try:
@@ -194,6 +206,7 @@ def lots_like_sum():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(sum),200)
 
+#ดึงหน้าที่ค้นหา
 @app.route('/api/lots/search',methods=['POST'])
 def lots_like_id():
     try:
@@ -224,6 +237,7 @@ def lots_like_id():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
+#ดึงล็อตตามid
 @app.route('/api/lots/<id>', methods=['GET'])
 def lots_id(id):
     try:
@@ -239,6 +253,7 @@ def lots_id(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
+#ดึงล็อตทั้งหมด
 @app.route('/api/lots', methods=['GET'])
 def lots():
     try:
@@ -253,7 +268,7 @@ def lots():
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
 
-
+#สร้างล็อต
 @app.route('/api/lots', methods=['POST'])
 def lots_insert():
     try:
@@ -271,6 +286,7 @@ def lots_insert():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+#ลบล็อต
 @app.route('/api/lots/<id>', methods=['DELETE'])
 def lots_delete(id):
     try:
@@ -286,7 +302,10 @@ def lots_delete(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
-# api Login
+######################################################################
+
+######################################################################
+# API Login
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -316,8 +335,12 @@ def login():
                 mycursor.close()
             if mydb:
                 mydb.close()
+######################################################################
 
-#api status
+
+######################################################################
+#API Status
+#get status
 @app.route('/api/status/<id>',methods=['GET'])
 def status_id(id):
     try:
@@ -333,6 +356,7 @@ def status_id(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
+#insert status
 @app.route('/api/status',methods=['POST'])
 def status_insert():
     try:
@@ -351,8 +375,11 @@ def status_insert():
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
 
+######################################################################
 
-# api เส้น detect 
+######################################################################
+# API detection
+# ส่งรูปจากกล้องมา
 @app.route('/request_pic', methods=['POST'])
 def handle_request_video():
     # แปลง base64 กลับมาเป็นภาพ
@@ -385,6 +412,7 @@ def handle_request_video():
     else :
         print("ssss")
 
+# ลบรูปที่ถ่าย
 @app.route('/delete_capture', methods=['POST'])
 def delete_capture():
     data = request.get_json()
@@ -395,7 +423,7 @@ def delete_capture():
     else:
         return jsonify({'error': 'No data provided'}), 400
 
-
+# ส่งVideoกลับไป
 @socketio.on('frame')
 def handle_frame(data):
     # แปลง base64 กลับมาเป็นภาพ
@@ -419,6 +447,7 @@ def handle_frame(data):
         else:
             return "Error: Failed to grab frame from camera"
 
+# ดึงรูปที่ถ่าย
 @app.route('/image', methods=['GET'])
 def image():
     filename = request.args.get('filename')
@@ -428,9 +457,12 @@ def image():
         return send_file(file_path, mimetype='image/jpeg')
     else:
         return "File not found", 404  # ส่งโค้ด 404 หากไม่พบไฟล์
+######################################################################
 
 
 
-
+######################################################################
+# Main
 if __name__ == '__main__':
     app.run()
+######################################################################
