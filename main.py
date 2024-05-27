@@ -211,7 +211,7 @@ def lots_page(page):
         if max_value is None or min_value is None:
             return make_response(jsonify({"msg": "Missing 'max' or 'min' in request"}), 400)
 
-        sql = """
+        query = """
             SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path , s.status as status
             FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
             JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
@@ -236,7 +236,7 @@ def lots_page(page):
                 # If user does not exist, return an error response
                 if not user_result:
                     return make_response(jsonify({"msg": "Token is bad"}), 404)
-                mycursor.execute(sql, values)
+                mycursor.execute(query, values)
                 myresult = mycursor.fetchall()
     except Error as e:
         print(f"Error: {e}")
@@ -558,7 +558,6 @@ def lots_productgraph(id):
 ######################################################################
 # API Login
 @app.route('/api/login', methods=['POST'])
-@jwt_required()
 def login():
     data = request.get_json()
     if data:
