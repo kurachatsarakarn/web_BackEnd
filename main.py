@@ -92,7 +92,7 @@ def products_id_losts(id):
         # If user does not exist, return an error response
         if not user_result:
             return make_response(jsonify({"msg": "Token is bad"}), 404)
-        sql = "SELECT * FROM products  WHERE products.id_lots = %s;"
+        sql = "SELECT * FROM products  WHERE products.id = %s;"
         val = (f"{id}",)
         mycursor.execute(sql,val)
         result = mycursor.fetchall()
@@ -192,10 +192,21 @@ def products_delete(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 @app.route('/api/graphproduct/<id>', methods=['GET'])
+@jwt_required()
 def lots_productgraphID(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+         # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         val =(f"{id}",)
         sql = """
             SELECT p.id,
