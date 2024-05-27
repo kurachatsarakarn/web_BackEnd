@@ -1,4 +1,5 @@
 from flask import Flask,render_template,request,jsonify,send_file,make_response,session
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity,create_access_token
 import mysql.connector
 from mysql.connector import Error
 from flask_socketio import SocketIO
@@ -14,6 +15,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
+app.config['JWT_SECRET_KEY'] = 'GFPT'
+jwt = JWTManager(app)
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
@@ -40,17 +43,37 @@ def index():
 # API Product
 #ดึงproductทั้งหมด
 @app.route('/api/products' ,methods=['GET'])
+@jwt_required()
 def products():
     try:
-        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        # Connect to the database
+        mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
         mycursor = mydb.cursor(dictionary=True)
-        mycursor.execute("SELECT * FROM `products`")
+        
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        
+        # Fetch products if user exists
+        mycursor.execute("SELECT * FROM products")
         myresult = mycursor.fetchall()
+        
+        # Close the database connection
         mydb.close()
     except Error as e:
         print(f"Error: {e}")
-        return make_response(jsonify({"msg": e}),500)    
-    return make_response(jsonify(myresult),200)
+        return make_response(jsonify({"msg": str(e)}), 500)
+    
+    return make_response(jsonify(myresult), 200)
 
 #ดึงproductตามid
 @app.route('/api/products/<id>' ,methods=['GET'])
@@ -379,7 +402,8 @@ def login():
             #ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
             user_record = mycursor.fetchone()
             if user_record:
-                return make_response(jsonify({"user": usernameu}),200)
+                access_token = create_access_token(identity=usernameu)
+                return make_response(jsonify({"Role": user_record['Role'],"Token":access_token}),200)
             else:
                 return make_response(jsonify({"msg": "not found user or password"}),401)
         except Error as e:
@@ -436,7 +460,24 @@ def status_insert():
 # API detection
 # ส่งรูปจากกล้องมา
 @app.route('/request_pic', methods=['POST'])
+@jwt_required()
 def handle_request_video():
+    # Connect to the database
+    mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
+    mycursor = mydb.cursor(dictionary=True)
+        
+    # Get current user from JWT
+    current_user = get_jwt_identity()
+        
+    # Check if the user exists
+    sql = "SELECT * FROM user WHERE name = %s"
+    val = (current_user,)
+    mycursor.execute(sql, val)
+    user_result = mycursor.fetchone()
+        
+    # If user does not exist, return an error response
+    if not user_result:
+        return make_response(jsonify({"msg": "Token is bad"}), 404)
     # แปลง base64 กลับมาเป็นภาพ
     data = request.get_json()
     datas = data['imageData']
