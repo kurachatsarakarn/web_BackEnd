@@ -140,7 +140,7 @@ def products_delete(id):
 def lots_page(page):
     try:
         page_value = int(page)
-        max_value = (page_value*8)-1 
+        max_value = 8
         min_value = (page_value-1)*8
         print(max_value)
         print(min_value)
@@ -148,13 +148,15 @@ def lots_page(page):
             return make_response(jsonify({"msg": "Missing 'max' or 'min' in request"}), 400)
 
         sql = """
-            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path , status.status as status
+            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path , s.status as status
             FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
             JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
             ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
 			on t2.max_id = lots.id 
-            left JOIN status ON lots.id = status.id_lots
-           	ORDER BY lots.id DESC 
+            left JOIN (SELECT status.id_lots as id,status.status as status FROM status INNER JOIN 
+            (SELECT max(status.id) as id FROM status GROUP BY status.id_lots) 
+            as smax on smax.id = status.id)as s ON lots.id = s.id
+           	ORDER BY lots.id DESC
             LIMIT %s OFFSET %s;
         """
         values = (max_value, min_value)
@@ -174,7 +176,12 @@ def lots_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
-        mycursor.execute("SELECT COUNT(lots.id) as sum FROM lots;")
+        sql = """SELECT COUNT(lots.id) as sum
+            FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
+            JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
+            ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
+			on t2.max_id = lots.id;"""
+        mycursor.execute(sql)
         myresult = mycursor.fetchall()
         count = myresult[0]['sum']
         sum = count//8
@@ -194,7 +201,12 @@ def lots_like_sum():
         mycursor = mydb.cursor(dictionary=True)
         data = request.get_json()
         id = data.get('id')
-        sql = "SELECT COUNT(lots.id) as sum FROM lots WHERE lots.name LIKE %s;"
+        sql = """SELECT COUNT(lots.id) as sum
+            FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
+            JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
+            ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
+			on t2.max_id = lots.id
+            WHERE lots.name LIKE %s;"""
         val = (f"%{id}%",)
         mycursor.execute(sql,val)
         myresult = mycursor.fetchall()
@@ -218,14 +230,17 @@ def lots_like_id():
         page = data.get('page')
         id = data.get('id')
         page_value = int(page)
-        max_value = (page_value*8)-1 
+        max_value = 8 
         min_value = (page_value-1)*8
         sql = ("""
-        SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path
+            SELECT lots.id as id,lots.name as lots,lots.date as date,t2.path as path , s.status as status
             FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
             JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
             ON p.id = p_max.id AND p.id_lots = p_max.id_lots) as t2
-			on t2.max_id = lots.id
+			on t2.max_id = lots.id 
+            left JOIN (SELECT status.id_lots as id,status.status as status FROM status INNER JOIN 
+            (SELECT max(status.id) as id FROM status GROUP BY status.id_lots) 
+            as smax on smax.id = status.id)as s ON lots.id = s.id
             WHERE lots.name LIKE %s
            	ORDER BY lots.id DESC 
             LIMIT %s OFFSET %s;
