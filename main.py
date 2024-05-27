@@ -206,7 +206,7 @@ def lots_like_sum():
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
-    return make_response(jsonify(sum),200)
+    return make_response(jsonify({"sum":sum}),200)
 
 #ดึงหน้าที่ค้นหา
 @app.route('/api/lots/search',methods=['POST'])
@@ -240,12 +240,14 @@ def lots_like_id():
     return make_response(jsonify(myresult),200)
 
 #ดึงล็อตตามid
-@app.route('/api/lots/<id>', methods=['GET'])
+@app.route('/api/lotId/<id>', methods=['GET'])
 def lots_id(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
-        sql = ("SELECT * FROM lots WHERE lots.id = %s;")
+        sql = ("""SELECT * FROM lots 
+                INNER JOIN products ON products.id_lots = lots.id
+                WHERE lots.id = %s;""")
         val = (f"{id}",)
         mycursor.execute(sql,val)
         myresult = mycursor.fetchall()
@@ -306,6 +308,40 @@ def lots_delete(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+#ดึงล็อตทั้งหมด
+@app.route('/api/graph/<id>', methods=['GET'])
+def lots_productgraph(id):
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        val =(f"{id}",)
+        sql = """SELECT (SUM(p.BreakClean)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as BreakClean,
+            (SUM(p.CompleteSeeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as CompleteSeeds,
+            (SUM(p.Dust)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as 
+            Dust,
+            (SUM(p.MoldSpores)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            MoldSpores,
+            (SUM(p.broken)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            broken,
+            (SUM(p.fullbrokenseeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            fullbrokenseeds,
+            SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds) as sum
+
+            FROM lots as l 
+            INNER JOIN products as p ON p.id_lots = l.id
+            WHERE l.id = %s
+            GROUP by p.id_lots;"""
+        mycursor.execute(sql, val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify(myresult),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    
 ######################################################################
 
 ######################################################################
