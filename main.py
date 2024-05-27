@@ -128,6 +128,30 @@ def products_delete(id):
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+@app.route('/api/graphproduct/<id>', methods=['GET'])
+def lots_productgraphID(id):
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        val =(f"{id}",)
+        sql = """
+            SELECT p.id,
+            (p.BreakClean/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as BreakClean,
+            (p.CompleteSeeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as CompleteSeeds,
+            (p.Dust/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as Dust,
+            (p.MoldSpores/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as MoldSpores,
+            (p.broken/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as broken,
+            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds
+            FROM `products` as p
+            WHERE p.id = %s;
+            """
+        mycursor.execute(sql, val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify(myresult),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
 ######################################################################
 
 
@@ -344,7 +368,7 @@ def lots_delete(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
-#ดึงล็อตทั้งหมด
+#ดึงล็อตกราฟทั้งหมด
 @app.route('/api/graph/<id>', methods=['GET'])
 def lots_productgraph(id):
     try:
