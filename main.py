@@ -295,6 +295,27 @@ def lots_id(id):
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify(myresult),200)
 
+#ดึงล็อตตามid
+@app.route('/api/lotstatusId/<id>', methods=['GET'])
+def lots_idstatus(id):
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        sql = ("""SELECT * FROM lots LEFT JOIN
+                (SELECT status.id_lots as id,status.status as status FROM status INNER JOIN 
+                (SELECT max(status.id) as id FROM status GROUP BY status.id_lots) 
+                as smax on smax.id = status.id) as st ON lots.id = st.id
+                WHERE lots.id = %s;""")
+        val = (f"{id}",)
+        mycursor.execute(sql,val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    return make_response(jsonify(myresult),200)
+
+
 #ดึงล็อตทั้งหมด
 @app.route('/api/lots', methods=['GET'])
 def lots():
