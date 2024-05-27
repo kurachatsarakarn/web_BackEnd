@@ -182,7 +182,11 @@ def products_delete(id):
         # If user does not exist, return an error response
         if not user_result:
             return make_response(jsonify({"msg": "Token is bad"}), 404)
+        data = request.get_json()
+        filename = data['file']
+        print(filename)
         sql = "DELETE FROM `products` WHERE products.id = %s;"
+        os.remove(filename)
         val = (f"{id}",)
         mycursor.execute(sql, val)  
         mydb.commit()
@@ -190,7 +194,7 @@ def products_delete(id):
     except Error as e:
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
-    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    return make_response(jsonify({"file": filename}),200)
 @app.route('/api/graphproduct/<id>', methods=['GET'])
 @jwt_required()
 def lots_productgraphID(id):
@@ -686,7 +690,33 @@ def status_insert():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
-
+@app.route('/api/status',methods=['GET'])
+@jwt_required()
+def status():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        sql = """SELECT user.name as name ,lots.name as lost ,s.status as status,s.date as date 
+        FROM status as s INNER JOIN lots on s.id_lots = lots.id
+        INNER JOIN user on user.id = s.id_user;"""
+        mycursor.execute(sql,)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    
 ######################################################################
 
 ######################################################################
