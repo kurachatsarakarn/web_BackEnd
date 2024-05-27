@@ -1,4 +1,5 @@
 from flask import Flask,render_template,request,jsonify,send_file,make_response,session
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity,create_access_token
 import mysql.connector
 from mysql.connector import Error
 from flask_socketio import SocketIO
@@ -14,6 +15,8 @@ from datetime import datetime
 
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
+app.config['JWT_SECRET_KEY'] = 'GFPT'
+jwt = JWTManager(app)
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
@@ -40,24 +43,55 @@ def index():
 # API Product
 #ดึงproductทั้งหมด
 @app.route('/api/products' ,methods=['GET'])
+@jwt_required()
 def products():
     try:
-        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        # Connect to the database
+        mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
         mycursor = mydb.cursor(dictionary=True)
-        mycursor.execute("SELECT * FROM `products`")
+        
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        
+        # Fetch products if user exists
+        mycursor.execute("SELECT * FROM products")
         myresult = mycursor.fetchall()
+        
+        # Close the database connection
         mydb.close()
     except Error as e:
         print(f"Error: {e}")
-        return make_response(jsonify({"msg": e}),500)    
-    return make_response(jsonify(myresult),200)
+        return make_response(jsonify({"msg": str(e)}), 500)
+    
+    return make_response(jsonify(myresult), 200)
 
 #ดึงproductตามid
 @app.route('/api/products/<id>' ,methods=['GET'])
+@jwt_required()
 def products_id_losts(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = "SELECT * FROM products  WHERE products.id_lots = %s;"
         val = (f"{id}",)
         mycursor.execute(sql,val)
@@ -70,20 +104,27 @@ def products_id_losts(id):
 
 #insert product
 @app.route('/api/products', methods=['POST'])
+@jwt_required()
 def products_insert():
     try:
         mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
         data = request.get_json()
         mycursor = mydb.cursor(dictionary=True)
-        query = "SELECT * FROM user WHERE user.name = %s"
-        valquery = (data['user'],)
-        mycursor.execute(query,valquery)
-        result = mycursor.fetchall()
-        print(result[0]['id'])
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        print(user_result['id'])
         sql = """INSERT INTO products (id_lots, id_user, BreakClean, CompleteSeeds, Dust, MoldSpores, broken, fullbrokenseeds, path)
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
         val = (
-             data['id'],result[0]['id'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
+             data['id'],user_result['id'], data['BreakClean'], data['CompleteSeeds'], data['Dust'],
             data['MoldSpores'], data['broken'], data['fullbrokenseeds'], data['path']
         )
         mycursor.execute(sql, val)
@@ -98,9 +139,20 @@ def products_insert():
 
 #update product
 @app.route('/api/products', methods=['PUT'])
+@jwt_required()
 def products_update():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         data = request.get_json()
         mycursor = mydb.cursor(dictionary=True)
         sql = "UPDATE `products` SET `id_lots`=%s WHERE products.id = %s;"
@@ -115,10 +167,21 @@ def products_update():
 
 #delete product
 @app.route('/api/products/<id>', methods=['DELETE'])
+@jwt_required()
 def products_delete(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = "DELETE FROM `products` WHERE products.id = %s;"
         val = (f"{id}",)
         mycursor.execute(sql, val)  
@@ -161,6 +224,7 @@ def lots_productgraphID(id):
 
 #ดึงข้อมูลเป็นหน้าๆ
 @app.route('/api/lots/<page>', methods=['GET'])
+@jwt_required()
 def lots_page(page):
     try:
         page_value = int(page)
@@ -186,6 +250,16 @@ def lots_page(page):
         values = (max_value, min_value)
         with mysql.connector.connect(host=host, user=user, password=password, database=database) as mydb:
             with mydb.cursor(dictionary=True) as mycursor:
+                # Get current user from JWT
+                current_user = get_jwt_identity()
+                # Check if the user exists
+                sql = "SELECT * FROM user WHERE name = %s"
+                val = (current_user,)
+                mycursor.execute(sql, val)
+                user_result = mycursor.fetchone()
+                # If user does not exist, return an error response
+                if not user_result:
+                    return make_response(jsonify({"msg": "Token is bad"}), 404)
                 mycursor.execute(sql, values)
                 myresult = mycursor.fetchall()
     except Error as e:
@@ -196,10 +270,21 @@ def lots_page(page):
 
 #ดึงจำนวนหน้า
 @app.route('/api/lots/sum',methods=['GET'])
+@jwt_required()
 def lots_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = """SELECT COUNT(lots.id) as sum
             FROM lots INNER JOIN (SELECT p.id_lots AS max_id, p.path FROM products AS p
             JOIN (SELECT MAX(id) AS id, id_lots FROM products GROUP BY id_lots) AS p_max 
@@ -219,10 +304,21 @@ def lots_sum():
 
 #ดึงจำนวนหน้าที่ค้นหา
 @app.route('/api/lots/search/sum',methods=['POST'])
+@jwt_required()
 def lots_like_sum():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         data = request.get_json()
         id = data.get('id')
         sql = """SELECT COUNT(lots.id) as sum
@@ -246,10 +342,21 @@ def lots_like_sum():
 
 #ดึงหน้าที่ค้นหา
 @app.route('/api/lots/search',methods=['POST'])
+@jwt_required()
 def lots_like_id():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         data = request.get_json()
         page = data.get('page')
         id = data.get('id')
@@ -280,10 +387,21 @@ def lots_like_id():
 
 #ดึงล็อตตามid
 @app.route('/api/lotId/<id>', methods=['GET'])
+@jwt_required()
 def lots_id(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = ("""SELECT * FROM lots 
                 INNER JOIN products ON products.id_lots = lots.id
                 WHERE lots.id = %s;""")
@@ -298,10 +416,21 @@ def lots_id(id):
 
 #ดึงล็อตตามid
 @app.route('/api/lotstatusId/<id>', methods=['GET'])
+@jwt_required()
 def lots_idstatus(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = ("""SELECT * FROM lots LEFT JOIN
                 (SELECT status.id_lots as id,status.status as status FROM status INNER JOIN 
                 (SELECT max(status.id) as id FROM status GROUP BY status.id_lots) 
@@ -319,10 +448,23 @@ def lots_idstatus(id):
 
 #ดึงล็อตทั้งหมด
 @app.route('/api/lots', methods=['GET'])
+@jwt_required()
 def lots():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        
         sql = "SELECT * FROM lots;"
         mycursor.execute(sql)
         myresult = mycursor.fetchall()
@@ -334,10 +476,21 @@ def lots():
 
 #สร้างล็อต
 @app.route('/api/lots', methods=['POST'])
+@jwt_required()
 def lots_insert():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         data = request.get_json()
         now = datetime.now()
         current_time = now.strftime("%Y-%m-%d")
@@ -354,10 +507,21 @@ def lots_insert():
 
 #ลบล็อต
 @app.route('/api/lots/<id>', methods=['DELETE'])
+@jwt_required()
 def lots_delete(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = ("DELETE FROM lots WHERE lots.id = %s;")
         val =(f"{id}",)
         mycursor.execute(sql, val)
@@ -370,10 +534,21 @@ def lots_delete(id):
 
 #ดึงล็อตกราฟทั้งหมด
 @app.route('/api/graph/<id>', methods=['GET'])
+@jwt_required()
 def lots_productgraph(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         val =(f"{id}",)
         sql = """SELECT (SUM(p.BreakClean)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as BreakClean,
             (SUM(p.CompleteSeeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as CompleteSeeds,
@@ -407,6 +582,7 @@ def lots_productgraph(id):
 ######################################################################
 # API Login
 @app.route('/api/login', methods=['POST'])
+@jwt_required()
 def login():
     data = request.get_json()
     if data:
@@ -424,7 +600,8 @@ def login():
             #ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
             user_record = mycursor.fetchone()
             if user_record:
-                return make_response(jsonify({"user": usernameu}),200)
+                access_token = create_access_token(identity=usernameu)
+                return make_response(jsonify({"Role": user_record['Role'],"Token":access_token}),200)
             else:
                 return make_response(jsonify({"msg": "not found user or password"}),401)
         except Error as e:
@@ -442,10 +619,21 @@ def login():
 #API Status
 #get status
 @app.route('/api/status/<id>',methods=['GET'])
+@jwt_required()
 def status_id(id):
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         sql = "SELECT * FROM status WHERE status.id_lots = %s ORDER BY status.id DESC LIMIT 1;"
         val = (f"{id}",)
         mycursor.execute(sql,val)
@@ -458,10 +646,21 @@ def status_id(id):
 
 #insert status
 @app.route('/api/status',methods=['POST'])
+@jwt_required()
 def status_insert():
     try:
         mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
         mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
         data = request.get_json()
         sql = """INSERT INTO `status`(`id_lots`, `id_user`, `status`, `date`) VALUES 
         (%s,%s,%s,%s)"""
@@ -481,7 +680,24 @@ def status_insert():
 # API detection
 # ส่งรูปจากกล้องมา
 @app.route('/request_pic', methods=['POST'])
+@jwt_required()
 def handle_request_video():
+    # Connect to the database
+    mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
+    mycursor = mydb.cursor(dictionary=True)
+        
+    # Get current user from JWT
+    current_user = get_jwt_identity()
+        
+    # Check if the user exists
+    sql = "SELECT * FROM user WHERE name = %s"
+    val = (current_user,)
+    mycursor.execute(sql, val)
+    user_result = mycursor.fetchone()
+        
+    # If user does not exist, return an error response
+    if not user_result:
+        return make_response(jsonify({"msg": "Token is bad"}), 404)
     # แปลง base64 กลับมาเป็นภาพ
     data = request.get_json()
     datas = data['imageData']
@@ -514,7 +730,24 @@ def handle_request_video():
 
 # ลบรูปที่ถ่าย
 @app.route('/delete_capture', methods=['POST'])
+@jwt_required()
 def delete_capture():
+    # Connect to the database
+    mydb = mysql.connector.connect(host=host, user=user, password=password, database=database)
+    mycursor = mydb.cursor(dictionary=True)
+        
+    # Get current user from JWT
+    current_user = get_jwt_identity()
+        
+    # Check if the user exists
+    sql = "SELECT * FROM user WHERE name = %s"
+    val = (current_user,)
+    mycursor.execute(sql, val)
+    user_result = mycursor.fetchone()
+        
+    # If user does not exist, return an error response
+    if not user_result:
+        return make_response(jsonify({"msg": "Token is bad"}), 404)
     data = request.get_json()
     filename = data['filename']
     if os.path.exists(filename):
