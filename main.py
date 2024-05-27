@@ -653,17 +653,20 @@ def status_insert():
         # Get current user from JWT
         current_user = get_jwt_identity()
         # Check if the user exists
-        sql = "SELECT * FROM user WHERE name = %s"
+        sql = "SELECT user.id FROM user WHERE name = %s"
         val = (current_user,)
         mycursor.execute(sql, val)
         user_result = mycursor.fetchone()
+        print(user_result['id'])
+        id = user_result['id']
+        data = request.get_json()
         # If user does not exist, return an error response
         if not user_result:
             return make_response(jsonify({"msg": "Token is bad"}), 404)
-        data = request.get_json()
+        
         sql = """INSERT INTO `status`(`id_lots`, `id_user`, `status`, `date`) VALUES 
         (%s,%s,%s,%s)"""
-        val = (data['id_lots'],data['id_user'],data['status'],data['date'])
+        val = (data['idlot'],id,data['status'],data['date'])
         mycursor.execute(sql,val)
         mydb.commit()
         mydb.close()
