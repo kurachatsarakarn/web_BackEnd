@@ -520,6 +520,37 @@ def lots_insert():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+###update
+@app.route('/api/lots', methods=['PUT'])
+@jwt_required()
+def lots_update():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        data = request.get_json()
+        name = data['name']
+        id = data['id']
+        sql = ("UPDATE `lots` SET `name` =%s  WHERE lots.id = %s ")
+        val = (name,id)
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+
 #ลบล็อต
 @app.route('/api/lots/<id>', methods=['DELETE'])
 @jwt_required()
@@ -689,6 +720,10 @@ def status_insert():
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+
+
+
 
 @app.route('/api/status',methods=['GET'])
 @jwt_required()
