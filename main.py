@@ -1,4 +1,4 @@
-from flask import Flask,render_template,request,jsonify,send_file,make_response,session
+from flask import Flask,request,jsonify,send_file,make_response
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity,create_access_token
 import mysql.connector
 from mysql.connector import Error
@@ -600,8 +600,8 @@ def lots_productgraph(id):
 def login():
     data = request.get_json()
     if data:
-        usernameu = data['username']
-        passwordu = data['password']
+        usernameuser = data['username']
+        passworduser = data['password']
         mydb = None
         mycursor = None
         try:
@@ -610,11 +610,11 @@ def login():
             mycursor = mydb.cursor(dictionary=True)
             #ใช้คำสั่ง SQL พร้อมกับการป้องกัน SQL Injection โดยใช้พารามิเตอร์
             sql = "SELECT * FROM user WHERE name = %s AND password = %s"
-            mycursor.execute(sql, (usernameu, passwordu))
+            mycursor.execute(sql, (usernameuser, passworduser))
             #ตรวจสอบผลลัพธ์ที่ได้จากฐานข้อมูล
             user_record = mycursor.fetchone()
             if user_record:
-                access_token = create_access_token(identity=usernameu)
+                access_token = create_access_token(identity=usernameuser)
                 return make_response(jsonify({"Role": user_record['Role'],"Token":access_token}),200)
             else:
                 return make_response(jsonify({"msg": "not found user or password"}),401)
@@ -706,7 +706,7 @@ def status():
         # If user does not exist, return an error response
         if not user_result:
             return make_response(jsonify({"msg": "Token is bad"}), 404)
-        sql = """SELECT user.name as name ,lots.name as lost ,s.status as status,s.date as date 
+        sql = """SELECT user.name as name ,lots.name as lots ,s.status as status,s.date as date 
         FROM status as s INNER JOIN lots on s.id_lots = lots.id
         INNER JOIN user on user.id = s.id_user;"""
         mycursor.execute(sql,)
@@ -718,7 +718,120 @@ def status():
         return make_response(jsonify({"msg": e}),500)
     
 ######################################################################
-
+#api user
+#get all
+@app.route('/api/user',methods=['GET'])
+@jwt_required()
+def user_get():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """SELECT * FROM `user` WHERE 1;"""
+        mycursor.execute(query,)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+#get id
+@app.route('/api/user/<id>',methods=['GET'])
+@jwt_required()
+def user_id(id):
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """SELECT * FROM `user` WHERE user.id = %s;"""
+        val = (id,)
+        mycursor.execute(query,val)
+        myresult = mycursor.fetchone()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+#post 
+@app.route('/api/user',methods=['POST'])
+@jwt_required()
+def user_insert():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """INSERT INTO `user`(`name`, `password`, `Role`) VALUES (%s,%s,%s);"""
+        data = request.get_json()
+        val = (data['name'],data['password'],data['Role'])
+        mycursor.execute(query,val)
+        mydb.commit()
+        mydb.close()
+        return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+    
+#put
+@app.route('/api/user',methods=['PUT'])
+@jwt_required()
+def user_update():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """UPDATE user SET `name`=%s,`password`=%s,`Role`=%s WHERE user.id = %s;"""
+        data = request.get_json()
+        val = (data['name'],data['password'],data['Role'],data['id'])
+        mycursor.execute(query,val)
+        mydb.commit()
+        mydb.close()
+        return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+#delete
+@app.route('/api/user',methods=['DELETE'])
+@jwt_required()
+def user_delete():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """DELETE FROM user WHERE user.id = %s;"""
+        data = request.get_json()
+        val = (data['id'],)
+        mycursor.execute(query,val)
+        mydb.commit()
+        mydb.close()
+        return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
 ######################################################################
 # API detection
 # ส่งรูปจากกล้องมา
