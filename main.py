@@ -752,6 +752,38 @@ def status():
         print(f"Error: {e}")
         return make_response(jsonify({"msg": e}),500)
     
+#เอาไว้ค้นหาตาม
+@app.route('/api/status/search',methods=['POST'])
+@jwt_required()
+def statusSearch():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        sql = """SELECT user.name as name ,lots.name as lots ,s.status as status,s.date as date 
+        FROM status as s INNER JOIN lots on s.id_lots = lots.id
+        INNER JOIN user on user.id = s.id_user
+        WHERE lots.name LIKE %s ;"""
+        data = request.get_json()
+        name = data.get('name')
+        val = ("%"+name+"%",) 
+        mycursor.execute(sql,val)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    
 ######################################################################
 #api user
 #get all
@@ -865,6 +897,31 @@ def user_delete():
         mydb.commit()
         mydb.close()
         return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+    
+#get id
+@app.route('/api/user/search',methods=['POST'])
+@jwt_required()
+def user_search():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """SELECT * FROM `user` WHERE user.name LIKE %s;"""
+        data = request.get_json()
+        id = data.get('id')
+        val1 = ("%"+id+"%",)
+        mycursor.execute(query,val1)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
     except Error as e:
         return make_response(jsonify({"msg": e}),500)
 ######################################################################
