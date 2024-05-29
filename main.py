@@ -219,7 +219,10 @@ def lots_productgraphID(id):
             (p.Dust/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as Dust,
             (p.MoldSpores/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as MoldSpores,
             (p.broken/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as broken,
-            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds
+            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds,
+            SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
+            SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
+            SUM(p.fullbrokenseeds)as Countfullbrokenseeds
             FROM `products` as p
             WHERE p.id = %s;
             """
@@ -609,12 +612,14 @@ def lots_productgraph(id):
             broken,
             (SUM(p.fullbrokenseeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
             fullbrokenseeds,
-            SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds) as sum
+            SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
+            SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
+            SUM(p.fullbrokenseeds)as Countfullbrokenseeds
 
             FROM lots as l 
             INNER JOIN products as p ON p.id_lots = l.id
             WHERE l.id = %s
-            GROUP by p.id_lots;"""
+            GROUP by p.id_lots;;"""
         mycursor.execute(sql, val)
         myresult = mycursor.fetchall()
         mydb.close()
