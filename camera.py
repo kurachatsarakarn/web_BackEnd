@@ -11,7 +11,7 @@ with open("utils/new.txt", "r") as my_file:
 detection_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(len(class_list))]
 
 # load a pretrained YOLOv8n model
-model = YOLO("weights/best (13).pt", "v8")
+model = YOLO("weights/demo15.pt", "v8")
 save_frame = None
 
 class VideoCamera(object):
