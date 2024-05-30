@@ -219,7 +219,10 @@ def lots_productgraphID(id):
             (p.Dust/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as Dust,
             (p.MoldSpores/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as MoldSpores,
             (p.broken/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as broken,
-            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds
+            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds,
+            SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
+            SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
+            SUM(p.fullbrokenseeds)as Countfullbrokenseeds
             FROM `products` as p
             WHERE p.id = %s;
             """
@@ -520,6 +523,37 @@ def lots_insert():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+###update
+@app.route('/api/lots', methods=['PUT'])
+@jwt_required()
+def lots_update():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        data = request.get_json()
+        name = data['name']
+        id = data['id']
+        sql = ("UPDATE `lots` SET `name` =%s  WHERE lots.id = %s ")
+        val = (name,id)
+        mycursor.execute(sql, val)
+        mydb.commit()
+        mydb.close()
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+
+
 #ลบล็อต
 @app.route('/api/lots/<id>', methods=['DELETE'])
 @jwt_required()
@@ -578,12 +612,14 @@ def lots_productgraph(id):
             broken,
             (SUM(p.fullbrokenseeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
             fullbrokenseeds,
-            SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds) as sum
+            SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
+            SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
+            SUM(p.fullbrokenseeds)as Countfullbrokenseeds
 
             FROM lots as l 
             INNER JOIN products as p ON p.id_lots = l.id
             WHERE l.id = %s
-            GROUP by p.id_lots;"""
+            GROUP by p.id_lots;;"""
         mycursor.execute(sql, val)
         myresult = mycursor.fetchall()
         mydb.close()
@@ -690,6 +726,10 @@ def status_insert():
         return make_response(jsonify({"msg": e}),500)
     return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
 
+
+
+
+
 @app.route('/api/status',methods=['GET'])
 @jwt_required()
 def status():
@@ -710,6 +750,38 @@ def status():
         FROM status as s INNER JOIN lots on s.id_lots = lots.id
         INNER JOIN user on user.id = s.id_user;"""
         mycursor.execute(sql,)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
+    except Error as e:
+        print(f"Error: {e}")
+        return make_response(jsonify({"msg": e}),500)
+    
+#เอาไว้ค้นหาตาม
+@app.route('/api/status/search',methods=['POST'])
+@jwt_required()
+def statusSearch():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        # Get current user from JWT
+        current_user = get_jwt_identity()
+        # Check if the user exists
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        # If user does not exist, return an error response
+        if not user_result:
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        sql = """SELECT user.name as name ,lots.name as lots ,s.status as status,s.date as date 
+        FROM status as s INNER JOIN lots on s.id_lots = lots.id
+        INNER JOIN user on user.id = s.id_user
+        WHERE lots.name LIKE %s ;"""
+        data = request.get_json()
+        name = data.get('name')
+        val = ("%"+name+"%",) 
+        mycursor.execute(sql,val)
         myresult = mycursor.fetchall()
         mydb.close()
         return make_response(jsonify({"myresult": myresult}),200)
@@ -830,6 +902,31 @@ def user_delete():
         mydb.commit()
         mydb.close()
         return make_response(jsonify({"rowcount": mycursor.rowcount}),200)
+    except Error as e:
+        return make_response(jsonify({"msg": e}),500)
+    
+#get id
+@app.route('/api/user/search',methods=['POST'])
+@jwt_required()
+def user_search():
+    try:
+        mydb = mysql.connector.connect(host=host,user=user,password=password,database=database)
+        mycursor = mydb.cursor(dictionary=True)
+        current_user = get_jwt_identity()
+        sql = "SELECT * FROM user WHERE name = %s"
+        val = (current_user,)
+        mycursor.execute(sql, val)
+        user_result = mycursor.fetchone()
+        if(user_result['Role'] != "admin"):
+            return make_response(jsonify({"msg": "Token is bad"}), 404)
+        query = """SELECT * FROM `user` WHERE user.name LIKE %s;"""
+        data = request.get_json()
+        id = data.get('id')
+        val1 = ("%"+id+"%",)
+        mycursor.execute(query,val1)
+        myresult = mycursor.fetchall()
+        mydb.close()
+        return make_response(jsonify({"myresult": myresult}),200)
     except Error as e:
         return make_response(jsonify({"msg": e}),500)
 ######################################################################
