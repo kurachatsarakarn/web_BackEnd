@@ -1,6 +1,7 @@
 from flask import Flask,request,jsonify,send_file,make_response
 from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity,create_access_token
 import mysql.connector
+from datetime import timedelta
 from mysql.connector import Error
 from flask_socketio import SocketIO
 from camera import VideoCamera
@@ -16,6 +17,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 app.config['JWT_SECRET_KEY'] = 'GFPT'
+app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=3)
 jwt = JWTManager(app)
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -214,12 +216,12 @@ def lots_productgraphID(id):
         val =(f"{id}",)
         sql = """
             SELECT p.id,
-            (p.BreakClean/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as BreakClean,
-            (p.CompleteSeeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as CompleteSeeds,
-            (p.Dust/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as Dust,
-            (p.MoldSpores/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as MoldSpores,
-            (p.broken/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as broken,
-            (p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100 as fullbrokenseeds,
+            ROUND((p.BreakClean/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as BreakClean,
+            ROUND((p.CompleteSeeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as CompleteSeeds,
+            ROUND((p.Dust/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as Dust,
+            ROUND((p.MoldSpores/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as MoldSpores,
+            ROUND((p.broken/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as broken,
+            ROUND((p.fullbrokenseeds/(p.BreakClean+p.CompleteSeeds+p.Dust+p.MoldSpores+p.broken+p.fullbrokenseeds))*100,2) as fullbrokenseeds,
             SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
             SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
             SUM(p.fullbrokenseeds)as Countfullbrokenseeds
@@ -599,20 +601,20 @@ def lots_productgraph(id):
         if not user_result:
             return make_response(jsonify({"msg": "Token is bad"}), 404)
         val =(f"{id}",)
-        sql = """SELECT (SUM(p.BreakClean)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as BreakClean,
-            (SUM(p.CompleteSeeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as CompleteSeeds,
-            (SUM(p.Dust)/ 
-            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as 
+        sql = """SELECT ROUND((SUM(p.BreakClean)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as BreakClean,
+            ROUND((SUM(p.CompleteSeeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as CompleteSeeds,
+            ROUND((SUM(p.Dust)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as 
             Dust,
-            (SUM(p.MoldSpores)/ 
-            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            ROUND((SUM(p.MoldSpores)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as
             MoldSpores,
-            (SUM(p.broken)/ 
-            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            ROUND((SUM(p.broken)/ 
+            (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as
             broken,
-            (SUM(p.fullbrokenseeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100 as
+            ROUND((SUM(p.fullbrokenseeds)/ (SUM(p.BreakClean)+SUM(p.CompleteSeeds)+SUM(p.Dust)+SUM(p.MoldSpores)+SUM(p.broken)+SUM(p.fullbrokenseeds)))*100,2) as
             fullbrokenseeds,
-            SUM(p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
+            (p.BreakClean)as CountBreakClean,SUM(p.CompleteSeeds)as CountCompleteSeeds,
             SUM(p.Dust)as CountDust,SUM(p.MoldSpores)as CountMoldSpores,SUM(p.broken)as Countbroken,
             SUM(p.fullbrokenseeds)as Countfullbrokenseeds
 
@@ -964,13 +966,16 @@ def handle_request_video():
         sum = num[0]+num[1]+num[2]+num[3]+num[4]+num[5]
         false = num[1]
         if(sum != 0):
+            
             percent = (false/sum) *100
+            x = float("{:.2f}".format(percent))
+            # print(x)
         else:
-            percent = 0
+            x = 0
         response_data = {
         "num": num,      # ข้อมูลตัวเลข
         "filename": filename,  # ชื่อไฟล์
-        "percent": percent
+        "percent": x
         
         }
         if frames is not None: 
@@ -1027,9 +1032,11 @@ def handle_frame(data):
             false = num[1]
             if(sum != 0):
                 percent = (false/sum) *100
+                x = float("{:.2f}".format(percent))
+                # print(x)
             else:
-                percent = 0
-            socketio.emit('response', {'frame':frames, 'num': num,'percent':percent})
+                x = 0
+            socketio.emit('response', {'frame':frames, 'num': num,'percent':x})
         else:
             return "Error: Failed to grab frame from camera"
 
