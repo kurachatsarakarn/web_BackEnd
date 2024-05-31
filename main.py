@@ -1010,7 +1010,7 @@ def delete_capture():
     filename = data['filename']
     if os.path.exists(filename):
         os.remove(filename)
-        return jsonify({'status': 'kuy', 'data_received': data}), 200
+        return jsonify({'status': 'Delete', 'data_received': data}), 200
     else:
         return jsonify({'error': 'No data provided'}), 400
 
