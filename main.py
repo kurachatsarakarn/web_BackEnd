@@ -1,5 +1,5 @@
 from flask import Flask,request,jsonify,send_file,make_response
-from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity,create_access_token
+from flask_jwt_extended import JWTManager, jwt_required, get_jwt_identity, create_access_token, get_jwt
 import mysql.connector
 from datetime import timedelta
 from mysql.connector import Error
@@ -17,11 +17,13 @@ from datetime import datetime
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False
 app.config['JWT_SECRET_KEY'] = 'GFPT'
-app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=3)
+app.config['JWT_BLACKLIST_ENABLED'] = True
+app.config['JWT_BLACKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
 jwt = JWTManager(app)
 CORS(app)  # เปิดใช้งาน CORS
 socketio = SocketIO(app, cors_allowed_origins="*")
 camera = VideoCamera()
+blacklist = set()
 
 # host='192.168.2.130'
 # user='test'
@@ -39,6 +41,24 @@ database='cornai'
 @app.route('/')
 def index():
     return ""
+######################################################################
+
+
+######################################################################
+
+#######DELETE TOKEN
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload):
+    jti = jwt_payload['jti']
+    return jti in blacklist
+
+
+@app.route('/api/logout', methods=['DELETE'])
+@jwt_required()
+def logout():
+    jti = get_jwt()['jti']
+    blacklist.add(str(jti))  # แปลง jti เป็น string ก่อนเพิ่มเข้าไปใน blacklist
+    return jsonify({"msg": "Successfully logged out"}), 200
 ######################################################################
 
 ######################################################################
