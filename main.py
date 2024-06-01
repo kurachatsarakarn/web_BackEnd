@@ -983,7 +983,7 @@ def handle_request_video():
     if frame is not None:
         frames, num,filename = camera.get_pic(frame)
         print(num)
-        sum = num[0]+num[1]+num[2]+num[3]+num[4]+num[5]
+        sum = num[0]+num[1]+num[2]+num[3]+num[4]#+num[5]
         false = num[1]
         if(sum != 0):
             
@@ -1048,7 +1048,7 @@ def handle_frame(data):
         if frames is not None: 
             # ส่งข้อมูลเฟรมและตัวเลข num ผ่าน Socket.IO ไปยังเว็บไซต์
             print(num)
-            sum = num[0]+num[1]+num[2]+num[3]+num[4]+num[5]
+            sum = num[0]+num[1]+num[2]+num[3]+num[4]#+num[5]
             false = num[1]
             if(sum != 0):
                 percent = (false/sum) *100

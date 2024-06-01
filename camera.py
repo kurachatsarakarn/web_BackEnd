@@ -6,7 +6,7 @@ from datetime import datetime
 from PIL import Image
 
 # opening the file in read mode
-with open("utils/new.txt", "r") as my_file:
+with open("utils/5class.txt", "r") as my_file:
     class_list = my_file.read().split("\n")
     my_file.close()
 
@@ -14,7 +14,7 @@ with open("utils/new.txt", "r") as my_file:
 detection_colors = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for _ in range(len(class_list))]
 
 # load a pretrained YOLOv8n model
-model = YOLO("weights/6class100.pt", "v8")
+model = YOLO("weights/5classv2.pt", "v8")
 model.to("cuda" if torch.cuda.is_available() else "cpu")  # Move model to GPU if available
 
 class VideoCamera(object):
@@ -30,7 +30,7 @@ class VideoCamera(object):
 
         # ทำประมวลผลภาพ
         num = [0] * len(class_list)
-        detect_params = model.predict(source=[frame_resized], conf=0.50, save=False)
+        detect_params = model.predict(source=[frame_resized], conf=0.35, save=False)
         DP = detect_params[0].cpu().numpy()
         
         if len(DP) != 0:
