@@ -31,10 +31,10 @@ blacklist = set()
 # database='cornai'
 
 
-host='localhost'
+host='localhost:3300'
 user='root'
-password=''
-database='cornai'
+password='1234'
+database='CornAI'
 
 ######################################################################
 #API base
